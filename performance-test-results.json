@@ -1,0 +1,38 @@
+{
+  "timestamp": "2025-07-20T02:43:12.882Z",
+  "tests": [
+    {
+      "name": "Bundle Size",
+      "passed": true,
+      "value": "1.33 MB",
+      "threshold": "2 MB",
+      "details": "Total bundle size: 1.33 MB"
+    },
+    {
+      "name": "Image Optimization",
+      "passed": true,
+      "details": "All images under 500KB",
+      "largeImages": []
+    },
+    {
+      "name": "Critical CSS",
+      "passed": true,
+      "details": "Resource hints found"
+    },
+    {
+      "name": "Service Worker",
+      "passed": true,
+      "details": "Service Worker with caching"
+    },
+    {
+      "name": "PWA Manifest",
+      "passed": true,
+      "details": "Valid manifest"
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "warnings": 0
+  }
+}

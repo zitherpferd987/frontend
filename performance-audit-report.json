@@ -1,0 +1,59 @@
+{
+  "timestamp": "2025-07-20T03:11:40.473Z",
+  "bundleAnalysis": {
+    "totalSize": 1812319,
+    "totalSizeMB": "1.73",
+    "jsSize": 1445930,
+    "jsSizeMB": "1.38",
+    "cssSize": 61065,
+    "cssSizeKB": "59.63",
+    "largeFiles": []
+  },
+  "lighthouseScores": null,
+  "webVitals": null,
+  "recommendations": [
+    {
+      "category": "Code Structure",
+      "priority": "low",
+      "issue": "3 code structure issues",
+      "recommendation": "Refactor large components and improve code organization"
+    }
+  ],
+  "buildTime": {
+    "duration": 16722,
+    "durationSeconds": "16.72",
+    "status": "good"
+  },
+  "staticAnalysis": {
+    "imageOptimization": {
+      "totalIssues": 0,
+      "issues": []
+    },
+    "codeStructure": {
+      "totalIssues": 3,
+      "issues": [
+        {
+          "file": "components\\common\\WebVitals.tsx",
+          "issue": "Dynamic import without Next.js dynamic",
+          "recommendation": "Use Next.js dynamic() for better optimization"
+        },
+        {
+          "file": "lib\\performance-monitoring.ts",
+          "issue": "Large component file",
+          "lines": 512,
+          "recommendation": "Consider breaking into smaller components"
+        },
+        {
+          "file": "lib\\web-vitals-optimization.ts",
+          "issue": "Large component file",
+          "lines": 508,
+          "recommendation": "Consider breaking into smaller components"
+        }
+      ]
+    },
+    "dependencies": {
+      "totalIssues": 0,
+      "issues": []
+    }
+  }
+}
