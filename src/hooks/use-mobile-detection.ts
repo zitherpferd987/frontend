@@ -2,67 +2,90 @@
 
 import { useEffect, useState } from 'react';
 
-interface MobileDetection {
+interface MobileDetectionInfo {
   isMobile: boolean;
   isTablet: boolean;
   isDesktop: boolean;
   isTouchDevice: boolean;
+  isIOS: boolean;
+  isAndroid: boolean;
+  deviceType: 'mobile' | 'tablet' | 'desktop';
+  orientation: 'portrait' | 'landscape';
   screenSize: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 }
 
-export const useMobileDetection = (): MobileDetection => {
-  const [detection, setDetection] = useState<MobileDetection>({
+export const useMobileDetection = (): MobileDetectionInfo => {
+  const [detection, setDetection] = useState<MobileDetectionInfo>({
     isMobile: false,
     isTablet: false,
     isDesktop: true,
     isTouchDevice: false,
+    isIOS: false,
+    isAndroid: false,
+    deviceType: 'desktop',
+    orientation: 'landscape',
     screenSize: 'lg',
   });
 
   useEffect(() => {
-    const checkDevice = () => {
+    const updateDetection = () => {
       const width = window.innerWidth;
-      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      const height = window.innerHeight;
+      const userAgent = navigator.userAgent.toLowerCase();
       
-      let screenSize: MobileDetection['screenSize'] = 'lg';
-      let isMobile = false;
-      let isTablet = false;
-      let isDesktop = true;
+      // Screen size detection
+      let screenSize: MobileDetectionInfo['screenSize'] = 'lg';
+      if (width < 475) screenSize = 'xs';
+      else if (width < 640) screenSize = 'sm';
+      else if (width < 768) screenSize = 'md';
+      else if (width < 1024) screenSize = 'lg';
+      else if (width < 1280) screenSize = 'xl';
+      else screenSize = '2xl';
 
-      if (width < 475) {
-        screenSize = 'xs';
-        isMobile = true;
-        isDesktop = false;
-      } else if (width < 640) {
-        screenSize = 'sm';
-        isMobile = true;
-        isDesktop = false;
-      } else if (width < 768) {
-        screenSize = 'md';
-        isTablet = true;
-        isDesktop = false;
-      } else if (width < 1024) {
-        screenSize = 'lg';
-        isTablet = true;
-        isDesktop = false;
-      } else if (width < 1280) {
-        screenSize = 'xl';
-      } else {
-        screenSize = '2xl';
-      }
+      // Device type detection
+      const isMobile = width < 768;
+      const isTablet = width >= 768 && width < 1024;
+      const isDesktop = width >= 1024;
+      
+      // Touch device detection
+      const isTouchDevice = 'ontouchstart' in window || 
+        navigator.maxTouchPoints > 0 || 
+        (navigator as any).msMaxTouchPoints > 0;
+
+      // OS detection
+      const isIOS = /iphone|ipad|ipod/.test(userAgent);
+      const isAndroid = /android/.test(userAgent);
+
+      // Orientation
+      const orientation = height > width ? 'portrait' : 'landscape';
+
+      // Device type priority: mobile > tablet > desktop
+      let deviceType: MobileDetectionInfo['deviceType'] = 'desktop';
+      if (isMobile) deviceType = 'mobile';
+      else if (isTablet) deviceType = 'tablet';
 
       setDetection({
         isMobile,
         isTablet,
         isDesktop,
         isTouchDevice,
+        isIOS,
+        isAndroid,
+        deviceType,
+        orientation,
         screenSize,
       });
     };
 
-    checkDevice();
-    window.addEventListener('resize', checkDevice);
-    return () => window.removeEventListener('resize', checkDevice);
+    updateDetection();
+    
+    window.addEventListener('resize', updateDetection);
+    window.addEventListener('orientationchange', updateDetection);
+
+    return () => {
+      window.removeEventListener('resize', updateDetection);
+      window.removeEventListener('orientationchange', updateDetection);
+    };
   }, []);
 
   return detection;

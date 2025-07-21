@@ -5,9 +5,10 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { NavItem } from '@/types';
-import { MobileNavigation } from './MobileNavigation';
+import { EnhancedMobileNavigation, MobileMenuButton } from './EnhancedMobileNavigation';
 import { useMobileDetection } from '@/hooks/use-mobile-detection';
 import { useViewport } from '@/hooks/use-viewport';
+import { useMobileOptimization } from '@/hooks/use-mobile-optimization';
 
 const navigation: NavItem[] = [
   { label: 'Home', href: '/' },
@@ -23,8 +24,9 @@ export function Header({ className }: HeaderProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
-  const { isMobile, isTouchDevice } = useMobileDetection();
-  const { safeAreaInsets } = useViewport();
+  const { isMobile, isTouchDevice, deviceType } = useMobileDetection();
+  const { safeAreaInsets, width } = useViewport();
+  const mobileOptimization = useMobileOptimization();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -56,20 +58,41 @@ export function Header({ className }: HeaderProps) {
           paddingTop: isMobile ? safeAreaInsets.top : 0,
         }}
       >
-        <nav className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <nav className={cn(
+          "container mx-auto",
+          // Responsive padding
+          width < 400 ? "px-3" : "px-4 sm:px-6 lg:px-8"
+        )}>
           <div className={cn(
-            'flex items-center justify-between transition-all duration-300',
-            isMobile ? 'h-14' : 'h-16'
+            'flex items-center justify-between',
+            // Animation based on performance mode
+            mobileOptimization.performanceMode === 'battery-saver' 
+              ? 'transition-none' 
+              : 'transition-all duration-300',
+            // Responsive height
+            isMobile ? 'h-14' : deviceType === 'tablet' ? 'h-15' : 'h-16'
           )}>
           {/* Logo */}
           <Link
             href="/"
-            className="flex items-center space-x-2 text-xl font-bold text-foreground hover:text-foreground/80 transition-colors"
+            className={cn(
+              "flex items-center font-bold text-foreground transition-colors touch-manipulation",
+              // Responsive sizing
+              isMobile ? "space-x-1.5 text-lg" : "space-x-2 text-xl",
+              // Touch optimization
+              isTouchDevice ? "min-h-touch p-2 -m-2" : "hover:text-foreground/80"
+            )}
           >
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">A</span>
+            <div className={cn(
+              "bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center",
+              isMobile ? "w-7 h-7" : "w-8 h-8"
+            )}>
+              <span className={cn(
+                "text-white font-bold",
+                isMobile ? "text-xs" : "text-sm"
+              )}>A</span>
             </div>
-            <span>Animator</span>
+            <span className={isMobile ? "hidden xs:inline" : ""}>Animator</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -90,51 +113,20 @@ export function Header({ className }: HeaderProps) {
             ))}
           </div>
 
-          {/* Mobile Menu Button */}
-          <button
-            className={cn(
-              'md:hidden rounded-md transition-colors touch-manipulation',
-              isTouchDevice ? 'p-3' : 'p-2',
-              'hover:bg-foreground/5 active:bg-foreground/10'
-            )}
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            aria-label="Toggle mobile menu"
-          >
-            <div className={cn(
-              'flex flex-col justify-center items-center',
-              isTouchDevice ? 'w-7 h-7' : 'w-6 h-6'
-            )}>
-              <span
-                className={cn(
-                  'block bg-foreground transition-all duration-300',
-                  isTouchDevice ? 'w-6 h-0.5' : 'w-5 h-0.5',
-                  isMobileMenuOpen ? 'rotate-45 translate-y-1' : ''
-                )}
-              />
-              <span
-                className={cn(
-                  'block bg-foreground transition-all duration-300 mt-1',
-                  isTouchDevice ? 'w-6 h-0.5' : 'w-5 h-0.5',
-                  isMobileMenuOpen ? 'opacity-0' : ''
-                )}
-              />
-              <span
-                className={cn(
-                  'block bg-foreground transition-all duration-300 mt-1',
-                  isTouchDevice ? 'w-6 h-0.5' : 'w-5 h-0.5',
-                  isMobileMenuOpen ? '-rotate-45 -translate-y-1' : ''
-                )}
-              />
-            </div>
-          </button>
+          {/* Enhanced Mobile Menu Button */}
+          <MobileMenuButton
+            isOpen={isMobileMenuOpen}
+            onToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          />
           </div>
         </nav>
       </header>
 
-      {/* Mobile Navigation */}
-      <MobileNavigation
+      {/* Enhanced Mobile Navigation */}
+      <EnhancedMobileNavigation
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
+        onToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
       />
     </>
   );

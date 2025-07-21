@@ -6,6 +6,9 @@ import Image from 'next/image';
 import { GalleryWork } from '@/types';
 import { LazyImage } from './LazyImage';
 import { PlayIcon, EyeIcon } from '@heroicons/react/24/outline';
+import { useMobileDetection } from '@/hooks/use-mobile-detection';
+import { useReducedMotion } from '@/hooks/use-reduced-motion';
+import { cn } from '@/lib/utils';
 
 interface WorkCardProps {
   work: GalleryWork;
@@ -17,13 +20,16 @@ export function WorkCard({ work, onClick, className = '' }: WorkCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
+  const { isMobile, isTouchDevice } = useMobileDetection();
+  const prefersReducedMotion = useReducedMotion();
 
   const primaryMedia = work.attributes.media.data[0];
   const isVideo = primaryMedia?.attributes.mime.startsWith('video/');
   const hasMultipleMedia = work.attributes.media.data.length > 1;
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!cardRef.current) return;
+    // Disable 3D effects on mobile/touch devices for better performance
+    if (!cardRef.current || isTouchDevice || prefersReducedMotion) return;
 
     const rect = cardRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -31,36 +37,55 @@ export function WorkCard({ work, onClick, className = '' }: WorkCardProps) {
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
     
-    const rotateX = (y - centerY) / 10;
-    const rotateY = (centerX - x) / 10;
+    const rotateX = (y - centerY) / 15; // Reduced intensity
+    const rotateY = (centerX - x) / 15; // Reduced intensity
 
-    cardRef.current.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(20px)`;
+    cardRef.current.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(10px)`;
   };
 
   const handleMouseLeave = () => {
-    if (!cardRef.current) return;
+    if (!cardRef.current || isTouchDevice) return;
     cardRef.current.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateZ(0px)';
     setIsHovered(false);
+  };
+
+  const handleTouchStart = () => {
+    if (isTouchDevice) {
+      setIsHovered(true);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (isTouchDevice) {
+      setTimeout(() => setIsHovered(false), 150); // Brief delay for visual feedback
+    }
   };
 
   return (
     <motion.div
       ref={cardRef}
-      className={`group relative cursor-pointer ${className}`}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
+      className={cn(
+        "group relative cursor-pointer",
+        isTouchDevice && "touch-manipulation",
+        className
+      )}
+      onMouseEnter={() => !isTouchDevice && setIsHovered(true)}
+      onMouseMove={!isTouchDevice ? handleMouseMove : undefined}
+      onMouseLeave={!isTouchDevice ? handleMouseLeave : undefined}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
       onClick={onClick}
-      whileHover={{ scale: 1.02 }}
+      whileHover={{ scale: prefersReducedMotion || isTouchDevice ? 1 : 1.02 }}
+      whileTap={{ scale: prefersReducedMotion ? 1 : 0.98 }}
       transition={{ 
         type: "spring", 
-        stiffness: 300, 
-        damping: 20,
-        scale: { duration: 0.2 }
+        stiffness: isMobile ? 400 : 300, 
+        damping: isMobile ? 25 : 20,
+        scale: { duration: isMobile ? 0.15 : 0.2 }
       }}
       style={{
-        transformStyle: 'preserve-3d',
-        transition: 'transform 0.1s ease-out',
+        transformStyle: isTouchDevice ? 'flat' : 'preserve-3d',
+        transition: isTouchDevice ? 'none' : 'transform 0.1s ease-out',
       }}
     >
       {/* Main image container */}
@@ -88,52 +113,62 @@ export function WorkCard({ work, onClick, className = '' }: WorkCardProps) {
           <div className="absolute inset-0 bg-foreground/5 animate-pulse" />
         )}
 
-        {/* Media type indicator */}
+        {/* Media type indicator - Touch optimized */}
         {isVideo && (
-          <div className="absolute top-3 left-3 bg-black/70 text-white px-2 py-1 rounded-full text-xs flex items-center space-x-1">
-            <PlayIcon className="w-3 h-3" />
+          <div className={cn(
+            "absolute bg-black/70 text-white rounded-full text-xs flex items-center space-x-1",
+            isMobile ? "top-2 left-2 px-2 py-1" : "top-3 left-3 px-2 py-1"
+          )}>
+            <PlayIcon className={cn("w-3 h-3", isMobile && "w-4 h-4")} />
             <span>Video</span>
           </div>
         )}
 
-        {/* Multiple media indicator */}
+        {/* Multiple media indicator - Touch optimized */}
         {hasMultipleMedia && (
-          <div className="absolute top-3 right-3 bg-black/70 text-white px-2 py-1 rounded-full text-xs flex items-center space-x-1">
-            <EyeIcon className="w-3 h-3" />
+          <div className={cn(
+            "absolute bg-black/70 text-white rounded-full text-xs flex items-center space-x-1",
+            isMobile ? "top-2 right-2 px-2 py-1" : "top-3 right-3 px-2 py-1"
+          )}>
+            <EyeIcon className={cn("w-3 h-3", isMobile && "w-4 h-4")} />
             <span>{work.attributes.media.data.length}</span>
           </div>
         )}
 
-        {/* Hover overlay */}
+        {/* Hover/Touch overlay */}
         <motion.div
           className="absolute inset-0 bg-black/60 flex items-center justify-center"
           initial={{ opacity: 0 }}
           animate={{ opacity: isHovered ? 1 : 0 }}
-          transition={{ duration: 0.3 }}
+          transition={{ duration: isMobile ? 0.2 : 0.3 }}
         >
           <motion.div
             className="text-white text-center"
-            initial={{ y: 20, opacity: 0 }}
+            initial={{ y: isMobile ? 10 : 20, opacity: 0 }}
             animate={{ 
-              y: isHovered ? 0 : 20, 
+              y: isHovered ? 0 : (isMobile ? 10 : 20), 
               opacity: isHovered ? 1 : 0 
             }}
-            transition={{ duration: 0.3, delay: 0.1 }}
+            transition={{ duration: isMobile ? 0.2 : 0.3, delay: isMobile ? 0.05 : 0.1 }}
           >
-            <EyeIcon className="w-8 h-8 mx-auto mb-2" />
-            <p className="text-sm font-medium">View Details</p>
+            <EyeIcon className={cn("mx-auto mb-2", isMobile ? "w-6 h-6" : "w-8 h-8")} />
+            <p className={cn("font-medium", isMobile ? "text-xs" : "text-sm")}>
+              {isTouchDevice ? "Tap to View" : "View Details"}
+            </p>
           </motion.div>
         </motion.div>
 
-        {/* 3D shadow effect */}
-        <div 
-          className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-black/20 pointer-events-none"
-          style={{
-            transform: 'translateZ(-1px)',
-            opacity: isHovered ? 1 : 0,
-            transition: 'opacity 0.3s ease',
-          }}
-        />
+        {/* 3D shadow effect - Disabled on mobile */}
+        {!isTouchDevice && (
+          <div 
+            className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-black/20 pointer-events-none"
+            style={{
+              transform: 'translateZ(-1px)',
+              opacity: isHovered ? 1 : 0,
+              transition: 'opacity 0.3s ease',
+            }}
+          />
+        )}
       </div>
 
       {/* Work info */}

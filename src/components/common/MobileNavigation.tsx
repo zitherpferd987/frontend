@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { useTouchGestures } from '@/hooks/use-touch-gestures';
+import { useMobileGestures } from '@/hooks/use-mobile-gestures';
 import { useViewport } from '@/hooks/use-viewport';
+import { useMobileOptimization } from '@/hooks/use-mobile-optimization';
 import { NavItem } from '@/types';
 
 const navigation: NavItem[] = [
@@ -22,17 +23,47 @@ interface MobileNavigationProps {
 
 export function MobileNavigation({ isOpen, onClose }: MobileNavigationProps) {
   const pathname = usePathname();
-  const { safeAreaInsets } = useViewport();
+  const { safeAreaInsets, width } = useViewport();
+  const mobileOptimization = useMobileOptimization();
   const [isClosing, setIsClosing] = useState(false);
 
-  // Touch gesture support for closing menu
-  const gestureRef = useTouchGestures<HTMLDivElement>({
+  // Enhanced gesture support for closing menu
+  const gestureRef = useMobileGestures<HTMLDivElement>({
     onSwipeUp: () => {
       if (isOpen) {
         handleClose();
       }
     },
-    threshold: 100,
+    onSwipeRight: () => {
+      if (isOpen) {
+        handleClose();
+      }
+    },
+    onSwipeDown: () => {
+      // Allow swipe down to close from top area
+      if (isOpen) {
+        handleClose();
+      }
+    },
+    onPanStart: (point) => {
+      // Track pan start for potential close gesture
+      console.debug('Pan start:', point);
+    },
+    onPan: (delta, point) => {
+      // Provide visual feedback during pan
+      if (Math.abs(delta.x) > 20 || Math.abs(delta.y) > 20) {
+        // Add subtle visual feedback for potential close
+      }
+    },
+    onPanEnd: (velocity) => {
+      // Close if pan velocity is high enough
+      if (velocity.x > 500 || velocity.y > 500) {
+        handleClose();
+      }
+    },
+    swipeThreshold: 30, // Reduced threshold for easier closing
+    longPressDelay: 800,
+    enableHapticFeedback: true,
   });
 
   const handleClose = () => {
@@ -78,9 +109,24 @@ export function MobileNavigation({ isOpen, onClose }: MobileNavigationProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+            transition={{ 
+              duration: mobileOptimization.performanceMode === 'battery-saver' ? 0.1 : 0.3 
+            }}
+            className={cn(
+              "fixed inset-0 z-40 mobile-nav-overlay",
+              mobileOptimization.performanceMode === 'battery-saver' 
+                ? "bg-black/60" 
+                : "bg-black/50 backdrop-blur-sm"
+            )}
             onClick={handleClose}
+            role="button"
+            aria-label="Close navigation menu"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
+                handleClose();
+              }
+            }}
           />
 
           {/* Menu Panel */}
@@ -95,7 +141,13 @@ export function MobileNavigation({ isOpen, onClose }: MobileNavigationProps) {
               stiffness: 200,
               duration: 0.3 
             }}
-            className="fixed top-0 right-0 h-full w-80 max-w-[85vw] bg-background/95 backdrop-blur-md border-l border-foreground/10 z-50 shadow-2xl"
+            className={cn(
+              "fixed top-0 right-0 h-full bg-background/95 backdrop-blur-md border-l border-foreground/10 z-50 shadow-2xl",
+              // Responsive width based on screen size
+              width < 400 ? "w-full" : "w-80 max-w-[85vw]",
+              // Performance optimizations
+              mobileOptimization.performanceMode === 'battery-saver' && "backdrop-blur-none bg-background"
+            )}
             style={{
               paddingTop: safeAreaInsets.top,
               paddingBottom: safeAreaInsets.bottom,
@@ -139,10 +191,18 @@ export function MobileNavigation({ isOpen, onClose }: MobileNavigationProps) {
                       href={item.href}
                       onClick={handleClose}
                       className={cn(
-                        'flex items-center space-x-4 p-4 rounded-xl transition-all duration-200 touch-manipulation',
+                        'flex items-center space-x-4 rounded-xl transition-all touch-manipulation min-h-touch-lg',
+                        // Responsive padding
+                        width < 400 ? 'p-3' : 'p-4',
+                        // Animation duration based on performance mode
+                        mobileOptimization.performanceMode === 'battery-saver' 
+                          ? 'transition-none' 
+                          : 'duration-200',
                         isActive(item.href)
                           ? 'bg-primary/10 text-primary border border-primary/20'
-                          : 'text-foreground/70 hover:text-foreground hover:bg-foreground/5'
+                          : 'text-foreground/70 hover:text-foreground hover:bg-foreground/5',
+                        // Touch feedback
+                        'active:scale-98 active:bg-foreground/10'
                       )}
                     >
                       <span className="text-2xl" role="img" aria-hidden="true">

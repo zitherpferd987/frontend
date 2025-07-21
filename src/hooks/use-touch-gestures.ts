@@ -22,8 +22,8 @@ interface TouchPoint {
 
 export const useTouchGestures = <T extends HTMLElement>(
   options: TouchGestureOptions = {}
-): RefObject<T> => {
-  const elementRef = useRef<T>(null);
+): RefObject<T | null> => {
+  const elementRef = useRef<T | null>(null);
   const touchStart = useRef<TouchPoint | null>(null);
   const lastTap = useRef<number>(0);
   const initialDistance = useRef<number>(0);

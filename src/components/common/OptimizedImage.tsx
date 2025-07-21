@@ -96,11 +96,11 @@ export default function OptimizedImage({
   };
 
   // Generate responsive attributes
-  const srcSet = responsiveSizes 
+  const srcSet = responsiveSizes
     ? generateResponsiveSrcSet(src, responsiveSizes, { format: bestFormat, ...optimization })
     : undefined;
-  
-  const sizes = responsiveSizes 
+
+  const sizes = responsiveSizes
     ? generateSizesAttribute(responsiveSizes)
     : undefined;
 
@@ -108,11 +108,11 @@ export default function OptimizedImage({
     <div className="relative overflow-hidden">
       {/* Skeleton loader */}
       {isLoading && showSkeleton && (
-        <ImageSkeleton 
+        <ImageSkeleton
           className={cn(
             'absolute inset-0 z-10',
             skeletonClassName
-          )} 
+          )}
         />
       )}
 

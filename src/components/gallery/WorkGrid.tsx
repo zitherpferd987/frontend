@@ -76,13 +76,13 @@ export function WorkGrid({
   const getGridColumns = () => {
     switch (columns) {
       case 2:
-        return 'grid-cols-1 md:grid-cols-2';
+        return 'grid-cols-1 sm:grid-cols-2';
       case 3:
-        return 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3';
+        return 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3';
       case 4:
-        return 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
+        return 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4';
       default:
-        return 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3';
+        return 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3';
     }
   };
 
@@ -118,7 +118,7 @@ export function WorkGrid({
 
       {/* Loading state */}
       {isLoading && (
-        <div className="grid gap-6 ${getGridColumns()}">
+        <div className={`grid gap-4 sm:gap-6 ${getGridColumns()}`}>
           {Array.from({ length: 12 }).map((_, index) => (
             <div
               key={index}
@@ -131,7 +131,7 @@ export function WorkGrid({
       {/* Works grid */}
       {!isLoading && allWorks.length > 0 && (
         <motion.div
-          className={`grid gap-6 ${getGridColumns()}`}
+          className={`grid gap-4 sm:gap-6 ${getGridColumns()}`}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}

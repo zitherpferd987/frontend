@@ -6,22 +6,31 @@ import Link from 'next/link';
 import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { useMobileDetection } from '@/hooks/use-mobile-detection';
 import { useViewport } from '@/hooks/use-viewport';
+import { cn } from '@/lib/utils';
 
 const HeroBanner = () => {
   const [mounted, setMounted] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const prefersReducedMotion = useReducedMotion();
+  const { isMobile, isTouchDevice, deviceType } = useMobileDetection();
   const { scrollY } = useScroll();
   
-  // Parallax transforms (disabled if user prefers reduced motion)
-  const y1 = useTransform(scrollY, [0, 1000], prefersReducedMotion ? [0, 0] : [0, -200]);
-  const y2 = useTransform(scrollY, [0, 1000], prefersReducedMotion ? [0, 0] : [0, -100]);
-  const opacity = useTransform(scrollY, [0, 300], prefersReducedMotion ? [1, 1] : [1, 0]);
-  const scale = useTransform(scrollY, [0, 300], prefersReducedMotion ? [1, 1] : [1, 0.8]);
+  // Reduce parallax intensity on mobile for better performance
+  const parallaxIntensity = isMobile ? 0.3 : 1;
+  const shouldUseParallax = !prefersReducedMotion && !isMobile;
   
-  // Spring animations for smooth parallax
-  const springY1 = useSpring(y1, { stiffness: 100, damping: 30 });
-  const springY2 = useSpring(y2, { stiffness: 100, damping: 30 });
+  // Parallax transforms (disabled if user prefers reduced motion or on mobile)
+  const y1 = useTransform(scrollY, [0, 1000], shouldUseParallax ? [0, -200 * parallaxIntensity] : [0, 0]);
+  const y2 = useTransform(scrollY, [0, 1000], shouldUseParallax ? [0, -100 * parallaxIntensity] : [0, 0]);
+  const opacity = useTransform(scrollY, [0, 300], shouldUseParallax ? [1, 0] : [1, 1]);
+  const scale = useTransform(scrollY, [0, 300], shouldUseParallax ? [1, 0.8] : [1, 1]);
+  
+  // Spring animations for smooth parallax (lighter on mobile)
+  const springConfig = isMobile 
+    ? { stiffness: 50, damping: 20 } 
+    : { stiffness: 100, damping: 30 };
+  const springY1 = useSpring(y1, springConfig);
+  const springY2 = useSpring(y2, springConfig);
 
   // Mouse parallax effect transforms
   const mouseX = useTransform(() => mousePosition.x * 10);
@@ -42,7 +51,8 @@ const HeroBanner = () => {
     setMounted(true);
     
     const handleMouseMove = (e: MouseEvent) => {
-      if (prefersReducedMotion) return;
+      // Disable mouse parallax on mobile/touch devices for better performance
+      if (prefersReducedMotion || isTouchDevice) return;
       
       const { clientX, clientY } = e;
       const { innerWidth, innerHeight } = window;
@@ -53,9 +63,17 @@ const HeroBanner = () => {
       });
     };
 
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, [prefersReducedMotion]);
+    // Only add mouse listener on non-touch devices
+    if (!isTouchDevice) {
+      window.addEventListener('mousemove', handleMouseMove);
+    }
+    
+    return () => {
+      if (!isTouchDevice) {
+        window.removeEventListener('mousemove', handleMouseMove);
+      }
+    };
+  }, [prefersReducedMotion, isTouchDevice]);
 
   if (!mounted) return null;
 
@@ -67,46 +85,61 @@ const HeroBanner = () => {
         style={{ y: springY1 }}
       />
       
-      {/* Floating Elements with Mouse Parallax */}
+      {/* Floating Elements with Mouse Parallax - Optimized for mobile */}
       <motion.div
-        className="absolute top-20 left-10 w-20 h-20 md:w-24 md:h-24 bg-primary/10 rounded-full blur-xl will-change-transform"
-        style={{ x: mouseX, y: mouseY }}
+        className={cn(
+          "absolute bg-primary/10 rounded-full blur-xl will-change-transform",
+          isMobile 
+            ? "top-16 left-6 w-16 h-16" 
+            : "top-20 left-10 w-20 h-20 md:w-24 md:h-24"
+        )}
+        style={isTouchDevice ? {} : { x: mouseX, y: mouseY }}
         animate={{
-          y: [0, -20, 0],
+          y: isMobile ? [0, -10, 0] : [0, -20, 0],
           scale: [1, 1.1, 1],
         }}
         transition={{
-          duration: 4,
-          repeat: Infinity,
+          duration: isMobile ? 6 : 4,
+          repeat: prefersReducedMotion ? 0 : Infinity,
           ease: "easeInOut"
         }}
       />
       
       <motion.div
-        className="absolute top-40 right-20 w-32 h-32 md:w-40 md:h-40 bg-secondary/10 rounded-full blur-xl will-change-transform"
-        style={{ x: mouseXNeg, y: mouseYNeg }}
+        className={cn(
+          "absolute bg-secondary/10 rounded-full blur-xl will-change-transform",
+          isMobile 
+            ? "top-32 right-6 w-24 h-24" 
+            : "top-40 right-20 w-32 h-32 md:w-40 md:h-40"
+        )}
+        style={isTouchDevice ? {} : { x: mouseXNeg, y: mouseYNeg }}
         animate={{
-          y: [0, 20, 0],
+          y: isMobile ? [0, 10, 0] : [0, 20, 0],
           scale: [1, 0.9, 1],
         }}
         transition={{
-          duration: 5,
-          repeat: Infinity,
+          duration: isMobile ? 7 : 5,
+          repeat: prefersReducedMotion ? 0 : Infinity,
           ease: "easeInOut",
           delay: 1
         }}
       />
       
       <motion.div
-        className="absolute bottom-40 left-1/4 w-16 h-16 md:w-20 md:h-20 bg-primary/15 rounded-full blur-lg will-change-transform"
-        style={{ x: mouseXSmall, y: mouseYSmall }}
+        className={cn(
+          "absolute bg-primary/15 rounded-full blur-lg will-change-transform",
+          isMobile 
+            ? "bottom-32 left-1/4 w-12 h-12" 
+            : "bottom-40 left-1/4 w-16 h-16 md:w-20 md:h-20"
+        )}
+        style={isTouchDevice ? {} : { x: mouseXSmall, y: mouseYSmall }}
         animate={{
-          x: [0, 30, 0],
-          y: [0, -15, 0],
+          x: isMobile ? [0, 15, 0] : [0, 30, 0],
+          y: isMobile ? [0, -8, 0] : [0, -15, 0],
         }}
         transition={{
-          duration: 6,
-          repeat: Infinity,
+          duration: isMobile ? 8 : 6,
+          repeat: prefersReducedMotion ? 0 : Infinity,
           ease: "easeInOut",
           delay: 2
         }}
@@ -147,49 +180,59 @@ const HeroBanner = () => {
         className="relative z-10 text-center px-4 max-w-5xl mx-auto"
         style={{ opacity, scale }}
       >
-        {/* Animated Title */}
+        {/* Animated Title - Mobile Optimized */}
         <motion.div
-          initial={{ opacity: 0, y: 50 }}
+          initial={{ opacity: 0, y: isMobile ? 30 : 50 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
+          transition={{ duration: isMobile ? 0.6 : 0.8, ease: "easeOut" }}
         >
-          <motion.h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold text-foreground mb-6 leading-tight">
+          <motion.h1 className={cn(
+            "font-bold text-foreground mb-6 leading-tight",
+            isMobile 
+              ? "text-3xl sm:text-4xl" 
+              : "text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl"
+          )}>
             <motion.span
               className="block will-change-transform"
-              initial={{ opacity: 0, x: -50 }}
+              initial={{ opacity: 0, x: isMobile ? -30 : -50 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              style={{ x: titleMouseX }}
+              transition={{ duration: isMobile ? 0.6 : 0.8, delay: 0.2 }}
+              style={isTouchDevice ? {} : { x: titleMouseX }}
             >
               Creative
             </motion.span>
             <motion.span
               className="block text-primary will-change-transform"
-              initial={{ opacity: 0, x: 50 }}
+              initial={{ opacity: 0, x: isMobile ? 30 : 50 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8, delay: 0.4 }}
-              style={{ x: titleMouseXNeg }}
+              transition={{ duration: isMobile ? 0.6 : 0.8, delay: 0.4 }}
+              style={isTouchDevice ? {} : { x: titleMouseXNeg }}
             >
               Animation
             </motion.span>
             <motion.span
               className="block text-secondary will-change-transform"
-              initial={{ opacity: 0, y: 50 }}
+              initial={{ opacity: 0, y: isMobile ? 30 : 50 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.6 }}
-              style={{ y: titleMouseY }}
+              transition={{ duration: isMobile ? 0.6 : 0.8, delay: 0.6 }}
+              style={isTouchDevice ? {} : { y: titleMouseY }}
             >
               Studio
             </motion.span>
           </motion.h1>
         </motion.div>
 
-        {/* Animated Subtitle */}
+        {/* Animated Subtitle - Mobile Optimized */}
         <motion.p
-          className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-foreground/70 mb-8 max-w-4xl mx-auto leading-relaxed px-4"
-          initial={{ opacity: 0, y: 30 }}
+          className={cn(
+            "text-foreground/70 mb-8 max-w-4xl mx-auto leading-relaxed px-4",
+            isMobile 
+              ? "text-base sm:text-lg" 
+              : "text-lg sm:text-xl md:text-2xl lg:text-3xl"
+          )}
+          initial={{ opacity: 0, y: isMobile ? 20 : 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.8 }}
+          transition={{ duration: isMobile ? 0.6 : 0.8, delay: 0.8 }}
         >
           Welcome to my creative space where{' '}
           <motion.span
@@ -233,27 +276,32 @@ const HeroBanner = () => {
           ))}
         </motion.div>
 
-        {/* Action Buttons */}
+        {/* Action Buttons - Touch Optimized */}
         <motion.div
           className="flex flex-col sm:flex-row gap-4 justify-center px-4"
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: isMobile ? 20 : 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 1.4 }}
+          transition={{ duration: isMobile ? 0.6 : 0.8, delay: 1.4 }}
         >
           <motion.div
-            whileHover={{ scale: prefersReducedMotion ? 1 : 1.05 }}
+            whileHover={{ scale: prefersReducedMotion || isTouchDevice ? 1 : 1.05 }}
             whileTap={{ scale: prefersReducedMotion ? 1 : 0.95 }}
             className="will-change-transform"
           >
             <Link
               href="/gallery"
-              className="group relative inline-block w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-primary text-white rounded-lg font-semibold overflow-hidden transition-all duration-300 text-center focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+              className={cn(
+                "group relative inline-block w-full sm:w-auto bg-primary text-white rounded-lg font-semibold overflow-hidden transition-all duration-300 text-center focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
+                isTouchDevice 
+                  ? "px-8 py-4 text-lg touch-manipulation" 
+                  : "px-6 sm:px-8 py-3 sm:py-4"
+              )}
               aria-label="View my animation gallery"
             >
               <motion.div
                 className="absolute inset-0 bg-gradient-to-r from-primary to-secondary"
                 initial={{ x: '-100%' }}
-                whileHover={{ x: prefersReducedMotion ? '-100%' : 0 }}
+                whileHover={{ x: prefersReducedMotion || isTouchDevice ? '-100%' : 0 }}
                 transition={{ duration: 0.3 }}
               />
               <span className="relative z-10">View Gallery</span>
@@ -261,13 +309,18 @@ const HeroBanner = () => {
           </motion.div>
           
           <motion.div
-            whileHover={{ scale: prefersReducedMotion ? 1 : 1.05 }}
+            whileHover={{ scale: prefersReducedMotion || isTouchDevice ? 1 : 1.05 }}
             whileTap={{ scale: prefersReducedMotion ? 1 : 0.95 }}
             className="will-change-transform"
           >
             <Link
               href="/blog"
-              className="group inline-block w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 border border-foreground/20 text-foreground rounded-lg font-semibold hover:bg-foreground/5 transition-all duration-300 backdrop-blur-sm text-center focus:outline-none focus:ring-2 focus:ring-foreground/50 focus:ring-offset-2"
+              className={cn(
+                "group inline-block w-full sm:w-auto border border-foreground/20 text-foreground rounded-lg font-semibold hover:bg-foreground/5 transition-all duration-300 backdrop-blur-sm text-center focus:outline-none focus:ring-2 focus:ring-foreground/50 focus:ring-offset-2",
+                isTouchDevice 
+                  ? "px-8 py-4 text-lg touch-manipulation" 
+                  : "px-6 sm:px-8 py-3 sm:py-4"
+              )}
               aria-label="Read my technical blog"
             >
               Read Blog
