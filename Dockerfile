@@ -1,56 +1,106 @@
 # Frontend Dockerfile for ARM64 architecture
 FROM node:18-alpine AS base
 
+# Set platform for ARM64 compatibility
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
+RUN echo "Building on $BUILDPLATFORM, targeting $TARGETPLATFORM"
+
+# Install system dependencies for ARM64
+RUN apk add --no-cache \
+    libc6-compat \
+    dumb-init \
+    curl \
+    wget \
+    && rm -rf /var/cache/apk/*
+
+# Set working directory
+WORKDIR /app
+
 # Install dependencies only when needed
 FROM base AS deps
-# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
-RUN apk add --no-cache libc6-compat
-WORKDIR /app
-
-# Install dependencies based on the preferred package manager
+# Copy package files
 COPY package.json package-lock.json* ./
-RUN npm ci
 
-# Rebuild the source code only when needed
+# Install dependencies with ARM64 optimizations
+RUN npm ci --only=production --no-audit --no-fund \
+    && npm cache clean --force
+
+# Development dependencies for building
+FROM base AS dev-deps
+COPY package.json package-lock.json* ./
+RUN npm ci --no-audit --no-fund \
+    && npm cache clean --force
+
+# Build stage
 FROM base AS builder
 WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
+
+# Copy dev dependencies
+COPY --from=dev-deps /app/node_modules ./node_modules
+
+# Copy source code
 COPY . .
 
-# Next.js collects completely anonymous telemetry data about general usage.
-# Learn more here: https://nextjs.org/telemetry
-# Uncomment the following line in case you want to disable telemetry during the build.
-ENV NEXT_TELEMETRY_DISABLED 1
+# Build arguments
+ARG NODE_ENV=production
+ARG NEXT_PUBLIC_STRAPI_API_URL
+ARG NEXT_PUBLIC_STRAPI_URL
+ARG NEXT_PUBLIC_SITE_URL
 
+# Environment variables for build
+ENV NODE_ENV=$NODE_ENV
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_PUBLIC_STRAPI_API_URL=$NEXT_PUBLIC_STRAPI_API_URL
+ENV NEXT_PUBLIC_STRAPI_URL=$NEXT_PUBLIC_STRAPI_URL
+ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
+
+# Build the application
 RUN npm run build
 
-# Production image, copy all the files and run next
-FROM base AS runner
+# Production image
+FROM base AS production
 WORKDIR /app
 
-ENV NODE_ENV production
-# Uncomment the following line in case you want to disable telemetry during runtime.
-ENV NEXT_TELEMETRY_DISABLED 1
+# Set production environment
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_OPTIONS="--max-old-space-size=1024"
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+# Create non-root user for security
+RUN addgroup --system --gid 1001 nodejs \
+    && adduser --system --uid 1001 --ingroup nodejs nextjs
 
+# Copy public assets
 COPY --from=builder /app/public ./public
 
-# Set the correct permission for prerender cache
-RUN mkdir .next
-RUN chown nextjs:nodejs .next
+# Create necessary directories
+RUN mkdir -p .next /app/logs \
+    && chown -R nextjs:nodejs .next /app/logs
 
-# Automatically leverage output traces to reduce image size
-# https://nextjs.org/docs/advanced-features/output-file-tracing
+# Copy built application with proper ownership
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# Create health check endpoint
+RUN echo '{"status":"ok","timestamp":"'$(date -Iseconds)'"}' > ./public/health.json
+
+# Switch to non-root user
 USER nextjs
 
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health.json || exit 1
+
+# Expose port
 EXPOSE 3000
 
-ENV PORT 3000
-ENV HOSTNAME "0.0.0.0"
+# Environment variables
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
 
+# Use dumb-init for proper signal handling
+ENTRYPOINT ["dumb-init", "--"]
+
+# Start the application
 CMD ["node", "server.js"]

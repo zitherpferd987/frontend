@@ -22,6 +22,9 @@ export async function POST(request: NextRequest) {
       userAgent: request.headers.get('user-agent'),
       ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip'),
       referer: request.headers.get('referer'),
+      sessionId: data.sessionId || generateSessionId(),
+      deviceType: getDeviceType(request.headers.get('user-agent') || ''),
+      connectionType: data.connectionType || 'unknown',
     };
 
     // Store the data (in production, save to database)
@@ -31,6 +34,9 @@ export async function POST(request: NextRequest) {
     if (performanceData.length > 1000) {
       performanceData.splice(0, performanceData.length - 1000);
     }
+
+    // Check for performance issues and send alerts
+    checkPerformanceThresholds(performanceEntry);
 
     // Log performance issues in development
     if (process.env.NODE_ENV === 'development') {
@@ -101,6 +107,39 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// Helper functions
+function generateSessionId(): string {
+  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+}
+
+function getDeviceType(userAgent: string): string {
+  if (/Mobile|Android|iPhone|iPad/.test(userAgent)) {
+    return 'mobile';
+  } else if (/Tablet/.test(userAgent)) {
+    return 'tablet';
+  }
+  return 'desktop';
+}
+
+function checkPerformanceThresholds(entry: any) {
+  const thresholds = {
+    LCP: 2500,    // 2.5s
+    FID: 100,     // 100ms
+    INP: 200,     // 200ms
+    CLS: 0.1,     // 0.1
+    FCP: 1800,    // 1.8s
+    TTFB: 800,    // 800ms
+  };
+
+  const threshold = thresholds[entry.name as keyof typeof thresholds];
+  if (threshold && entry.value > threshold) {
+    console.warn(`Performance threshold exceeded: ${entry.name} = ${entry.value} (threshold: ${threshold})`);
+    
+    // In production, you might send alerts here
+    // sendPerformanceAlert(entry, threshold);
+  }
+}
+
 function calculatePerformanceStats(data: any[]) {
   if (data.length === 0) {
     return {};
@@ -134,8 +173,28 @@ function calculatePerformanceStats(data: any[]) {
       p90: sorted[Math.floor(count * 0.90)],
       p95: sorted[Math.floor(count * 0.95)],
       p99: sorted[Math.floor(count * 0.99)],
+      // Performance ratings based on Core Web Vitals thresholds
+      rating: getPerformanceRating(metricName, sorted[Math.floor(count * 0.75)]),
     };
   });
 
   return stats;
+}
+
+function getPerformanceRating(metricName: string, value: number): string {
+  const thresholds = {
+    LCP: { good: 2500, poor: 4000 },
+    FID: { good: 100, poor: 300 },
+    INP: { good: 200, poor: 500 },
+    CLS: { good: 0.1, poor: 0.25 },
+    FCP: { good: 1800, poor: 3000 },
+    TTFB: { good: 800, poor: 1800 },
+  };
+
+  const threshold = thresholds[metricName as keyof typeof thresholds];
+  if (!threshold) return 'unknown';
+
+  if (value <= threshold.good) return 'good';
+  if (value <= threshold.poor) return 'needs-improvement';
+  return 'poor';
 }

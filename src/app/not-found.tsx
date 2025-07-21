@@ -1,10 +1,6 @@
-import Link from 'next/link';
-import { Metadata } from 'next';
+'use client'
 
-export const metadata: Metadata = {
-  title: '页面未找到 - 动画师博客',
-  description: '抱歉，您访问的页面不存在。',
-};
+import Link from 'next/link';
 
 export default function NotFound() {
   return (

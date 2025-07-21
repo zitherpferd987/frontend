@@ -6,12 +6,42 @@ import { blogQueries, galleryQueries } from '@/lib/queries';
 export const revalidate = 3600; // Revalidate every hour
 export const dynamicParams = true; // Allow dynamic params not generated at build time
 
+// Enhanced static generation configuration
+export const STATIC_GENERATION_CONFIG = {
+  // Page-specific revalidation times
+  pages: {
+    home: 1800,        // 30 minutes - frequently updated
+    blog: 3600,        // 1 hour - moderate updates
+    gallery: 7200,     // 2 hours - less frequent updates
+    blogPost: 3600,    // 1 hour - content updates
+    galleryWork: 7200, // 2 hours - stable content
+  },
+  
+  // Build-time static generation limits
+  buildTime: {
+    maxBlogPosts: 50,     // Generate top 50 blog posts at build time
+    maxGalleryWorks: 30,  // Generate top 30 gallery works at build time
+  },
+  
+  // ISR configuration
+  isr: {
+    enabled: true,
+    fallback: 'blocking', // or true for non-blocking
+    tags: {
+      blogPosts: ['blog-posts', 'content'],
+      galleryWorks: ['gallery-works', 'media'],
+      homepage: ['homepage', 'featured'],
+    },
+  },
+};
+
 // Generate static params for blog posts
-export async function generateBlogPostParams() {
+export async function generateBlogPostParams(buildTime = false) {
   try {
+    const pageSize = buildTime ? STATIC_GENERATION_CONFIG.buildTime.maxBlogPosts : 100;
     const posts = await blogQueries.getAll({ 
       page: 1,
-      pageSize: 100
+      pageSize,
     });
     
     return posts.data.map((post) => ({
@@ -24,11 +54,13 @@ export async function generateBlogPostParams() {
 }
 
 // Generate static params for gallery works
-export async function generateGalleryWorkParams() {
+export async function generateGalleryWorkParams(buildTime = false) {
   try {
+    const pageSize = buildTime ? STATIC_GENERATION_CONFIG.buildTime.maxGalleryWorks : 100;
     const works = await galleryQueries.getAll({ 
       page: 1,
-      pageSize: 100
+      pageSize,
+      featured: true, // Prioritize featured works for build-time generation
     });
     
     return works.data.map((work) => ({

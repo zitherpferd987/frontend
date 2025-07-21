@@ -5,6 +5,7 @@ import { QueryProvider } from "@/providers/query-provider";
 import { ErrorBoundary } from "@/components/common";
 import { GlobalErrorProvider } from "@/components/common/GlobalErrorHandler";
 import WebVitals from "@/components/common/WebVitals";
+import PerformanceAnalytics from "@/components/common/PerformanceAnalytics";
 import Script from "next/script";
 
 const inter = Inter({
@@ -81,6 +82,7 @@ export default function RootLayout({
             </GlobalErrorProvider>
           </QueryProvider>
           <WebVitals />
+          <PerformanceAnalytics pageName="root-layout" />
         </ErrorBoundary>
         
         {/* Core Web Vitals optimization script */}

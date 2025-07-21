@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: GalleryWorkPageProps): Promis
     const { id } = await params;
     const response = await galleryQueries.getById(parseInt(id));
     const work = response.data;
-    
+
     if (!work) {
       return genMeta({
         title: 'Gallery Work Not Found',
@@ -30,7 +30,7 @@ export async function generateMetadata({ params }: GalleryWorkPageProps): Promis
 
     const { attributes } = work;
     const featuredImage = attributes.media?.data?.[0];
-    
+
     return genMeta({
       title: attributes.title,
       description: attributes.description || `View ${attributes.title} - A creative work by the animator.`,
@@ -59,7 +59,7 @@ export default async function GalleryWorkPage({ params }: GalleryWorkPageProps) 
     const { id } = await params;
     const response = await galleryQueries.getById(parseInt(id));
     const work = response.data;
-    
+
     if (!work) {
       notFound();
     }
