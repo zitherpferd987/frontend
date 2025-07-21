@@ -250,8 +250,8 @@ export function MobilePageTransition({ children, className = '' }: MobilePageTra
   };
 
   const pageTransition = {
-    type: 'tween',
-    ease: 'anticipate',
+    type: 'tween' as const,
+    ease: 'anticipate' as const,
     duration: mobileOptimization.performanceMode === 'battery-saver' ? 0.1 : (isMobile ? 0.3 : 0.5),
   };
 

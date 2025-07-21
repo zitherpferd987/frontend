@@ -10,20 +10,20 @@ interface MobileOptimizationConfig {
   enableParallax: boolean;
   enableHoverEffects: boolean;
   animationDuration: number;
-  
+
   // Performance settings
   enableLazyLoading: boolean;
   imageQuality: number;
   enablePreloading: boolean;
-  
+
   // Touch settings
   touchFeedback: boolean;
   swipeGestures: boolean;
-  
+
   // Layout settings
   compactLayout: boolean;
   adaptiveSpacing: boolean;
-  
+
   // Accessibility
   respectReducedMotion: boolean;
   enhancedTouchTargets: boolean;
@@ -46,7 +46,7 @@ export const useMobileOptimization = (): MobileOptimizationState => {
   // Detect connection speed
   useEffect(() => {
     const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
-    
+
     if (connection) {
       const updateConnection = () => {
         const effectiveType = connection.effectiveType;
@@ -86,7 +86,7 @@ export const useMobileOptimization = (): MobileOptimizationState => {
     if ('getBattery' in navigator) {
       (navigator as any).getBattery().then((battery: any) => {
         updateBatteryStatus(battery);
-        
+
         battery.addEventListener('levelchange', () => updateBatteryStatus(battery));
         battery.addEventListener('chargingchange', () => updateBatteryStatus(battery));
       });
@@ -221,7 +221,7 @@ export const getMobileAnimationProps = (
   return {
     initial: { opacity: 0, y: isMobile ? 10 : 20 },
     animate: { opacity: 1, y: 0 },
-    transition: { duration, ease: 'easeOut' },
+    transition: { duration, ease: 'easeOut' as const },
   };
 };
 
@@ -231,7 +231,7 @@ export const getMobileImageProps = (
   performanceMode: 'high' | 'balanced' | 'battery-saver'
 ) => {
   let quality = 85;
-  
+
   if (performanceMode === 'battery-saver' || connectionType === 'slow') {
     quality = 50;
   } else if (isMobile) {
@@ -267,7 +267,7 @@ export const getMobileLayoutProps = (
 ) => {
   const baseSpacing = isMobile ? (isLandscape ? 'py-2 px-4' : 'py-4 px-4') : 'py-6 px-6';
   const containerMaxWidth = isMobile ? 'max-w-full' : deviceType === 'tablet' ? 'max-w-4xl' : 'max-w-6xl';
-  
+
   return {
     spacing: baseSpacing,
     containerMaxWidth,

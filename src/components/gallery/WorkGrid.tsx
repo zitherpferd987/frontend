@@ -9,6 +9,9 @@ import { CategoryFilter } from './CategoryFilter';
 import { TagFilter } from './TagFilter';
 import { useInfiniteGalleryWorks } from '@/hooks/use-gallery-works';
 import { useIntersectionObserver } from '@/hooks/use-intersection-observer';
+import { ErrorFeedback } from '@/components/common/ErrorFeedback';
+import { OfflineFallback } from '@/components/common/OfflineNotification';
+import { GalleryWorkSkeleton } from '@/components/common/LoadingStates';
 
 interface WorkGridProps {
   initialWorks?: GalleryWork[];
@@ -40,6 +43,7 @@ export function WorkGrid({
     isFetchingNextPage,
     isLoading,
     error,
+    refetch,
   } = useInfiniteGalleryWorks({
     pageSize: 12,
     category: selectedCategory || undefined,
@@ -88,15 +92,23 @@ export function WorkGrid({
 
   if (error) {
     return (
-      <div className="text-center py-12">
-        <p className="text-red-500 mb-4">Failed to load gallery works</p>
-        <button 
-          onClick={() => window.location.reload()}
-          className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
-        >
-          Retry
-        </button>
-      </div>
+      <OfflineFallback fallback={
+        <ErrorFeedback
+          error={error}
+          onRetry={() => refetch()}
+          context="作品画廊"
+          variant="card"
+          className="my-8"
+        />
+      }>
+        <ErrorFeedback
+          error={error}
+          onRetry={() => refetch()}
+          context="作品画廊"
+          variant="card"
+          className="my-8"
+        />
+      </OfflineFallback>
     );
   }
 
@@ -120,10 +132,7 @@ export function WorkGrid({
       {isLoading && (
         <div className={`grid gap-4 sm:gap-6 ${getGridColumns()}`}>
           {Array.from({ length: 12 }).map((_, index) => (
-            <div
-              key={index}
-              className="aspect-square bg-foreground/5 rounded-lg animate-pulse"
-            />
+            <GalleryWorkSkeleton key={index} />
           ))}
         </div>
       )}

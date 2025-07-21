@@ -219,7 +219,7 @@ export function TouchFriendlyInteraction({
 
   return (
     <motion.div
-      ref={gestureRef}
+      ref={gestureRef as React.RefObject<HTMLDivElement>}
       className={cn(
         'touch-friendly-interaction relative',
         'touch-manipulation select-none',

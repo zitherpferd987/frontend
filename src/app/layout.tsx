@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { QueryProvider } from "@/providers/query-provider";
 import { ErrorBoundary } from "@/components/common";
+import { GlobalErrorProvider } from "@/components/common/GlobalErrorHandler";
 import WebVitals from "@/components/common/WebVitals";
 import Script from "next/script";
 
@@ -73,9 +74,11 @@ export default function RootLayout({
         className={`${inter.variable} ${jetbrainsMono.variable} antialiased`}
         suppressHydrationWarning
       >
-        <ErrorBoundary>
+        <ErrorBoundary level="global">
           <QueryProvider>
-            {children}
+            <GlobalErrorProvider>
+              {children}
+            </GlobalErrorProvider>
           </QueryProvider>
           <WebVitals />
         </ErrorBoundary>

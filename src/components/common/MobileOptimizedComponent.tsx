@@ -17,7 +17,7 @@ interface MobileOptimizedComponentProps {
   animation?: boolean;
   touchOptimized?: boolean;
   gestureEnabled?: boolean;
-  as?: keyof JSX.IntrinsicElements;
+  as?: keyof React.JSX.IntrinsicElements;
   motionProps?: Partial<MotionProps>;
 }
 
@@ -75,7 +75,7 @@ export const MobileOptimizedComponent = forwardRef<
     text: 'text-foreground',
   };
 
-  const Component = motion[as] as any;
+  const Component = (motion as any)[as];
 
   return (
     <Component
@@ -157,7 +157,7 @@ MobileCard.displayName = 'MobileCard';
 
 export const MobileButton = forwardRef<HTMLButtonElement, Omit<MobileOptimizedComponentProps, 'variant' | 'as'>>(
   (props, ref) => (
-    <MobileOptimizedComponent ref={ref} variant="button" as="button" {...props} />
+    <MobileOptimizedComponent ref={ref as any} variant="button" as="button" {...props} />
   )
 );
 
@@ -165,7 +165,7 @@ MobileButton.displayName = 'MobileButton';
 
 export const MobileContainer = forwardRef<HTMLDivElement, Omit<MobileOptimizedComponentProps, 'variant'>>(
   (props, ref) => (
-    <MobileOptimizedComponent ref={ref} variant="container" {...props} />
+    <MobileOptimizedComponent ref={ref as any} variant="container" {...props} />
   )
 );
 

@@ -163,6 +163,7 @@ export interface NavItem {
   label: string;
   href: string;
   icon?: string;
+  description?: string;
   children?: NavItem[];
 }
 

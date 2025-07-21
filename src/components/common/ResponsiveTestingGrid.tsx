@@ -259,7 +259,7 @@ export function ResponsiveTestingGrid({
           '--is-desktop': isDesktop ? '1' : '0',
           '--is-landscape': isLandscape ? '1' : '0',
           '--is-portrait': isPortrait ? '1' : '0',
-        }}
+        } as React.CSSProperties}
       >
         {children}
       </div>
@@ -324,7 +324,7 @@ export const useResponsiveTesting = () => {
     return width <= breakpoints[breakpoint];
   };
 
-  const getResponsiveValue = <T>(values: Partial<Record<keyof typeof breakpoints | 'default', T>>): T => {
+  const getResponsiveValue = <T,>(values: Partial<Record<keyof typeof breakpoints | 'default', T>>): T => {
     const currentBreakpoint = getCurrentBreakpoint();
     
     // Try current breakpoint first

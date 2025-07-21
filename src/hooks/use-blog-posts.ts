@@ -15,6 +15,15 @@ export function useBlogPosts(params?: {
     queryKey: ['blog-posts', params],
     queryFn: () => blogQueries.getAll(params),
     staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: (failureCount, error) => {
+      // Don't retry on client errors (4xx)
+      if (error && typeof error === 'object' && 'status' in error) {
+        const status = (error as any).status;
+        if (status >= 400 && status < 500) return false;
+      }
+      return failureCount < 3;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 }
 
@@ -52,6 +61,14 @@ export function useBlogPost(slug: string) {
     },
     enabled: !!slug,
     staleTime: 10 * 60 * 1000, // 10 minutes
+    retry: (failureCount, error) => {
+      if (error && typeof error === 'object' && 'status' in error) {
+        const status = (error as any).status;
+        if (status === 404) return false; // Don't retry for not found
+        if (status >= 400 && status < 500) return false;
+      }
+      return failureCount < 3;
+    },
   });
 }
 

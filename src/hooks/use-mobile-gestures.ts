@@ -380,5 +380,5 @@ export const useMobileGestures = <T extends HTMLElement>(
     enableHapticFeedback,
   ]);
 
-  return elementRef;
+  return elementRef as React.RefObject<T>;
 };

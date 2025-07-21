@@ -202,7 +202,7 @@ export function EnhancedMobileNavigation({
 
           {/* Enhanced Menu Panel with drag support */}
           <motion.div
-            ref={gestureRef}
+            ref={gestureRef as React.RefObject<HTMLDivElement>}
             initial={{ x: '100%' }}
             animate={{ x: isClosing ? '100%' : 0 }}
             exit={{ x: '100%' }}

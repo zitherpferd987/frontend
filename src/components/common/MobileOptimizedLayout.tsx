@@ -79,7 +79,7 @@ export function MobileOptimizedLayout({
   // Add mobile-specific body classes
   useEffect(() => {
     const body = document.body;
-    const classes = [];
+    const classes: string[] = [];
 
     if (isMobile) classes.push('mobile-device');
     if (isTouchDevice) classes.push('touch-device');
@@ -172,7 +172,7 @@ export function MobileOptimizedLayout({
         '--animation-easing': mobileOptimization.performanceMode === 'high' 
           ? 'cubic-bezier(0.4, 0, 0.2, 1)' 
           : 'ease-out',
-      }}
+      } as React.CSSProperties}
     >
       <AnimatePresence mode="wait">
         {children}
@@ -244,7 +244,9 @@ export function MobileSection({
   spacing = 'normal',
   background = 'transparent',
 }: MobileSectionProps) {
-  const { isMobile, isSmallHeight } = useMobileDetection();
+  const { isMobile } = useMobileDetection();
+  const { height } = useViewport();
+  const isSmallHeight = height < 600;
 
   const spacingClasses = {
     tight: isMobile ? 'py-4' : 'py-6',

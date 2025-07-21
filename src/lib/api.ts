@@ -1,5 +1,6 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { APIResponse, QueryParams, APIError } from '@/types';
+import { withRetry, DEFAULT_RETRY_CONFIG, reportError } from './error-handling';
 
 class StrapiAPI {
   private client: AxiosInstance;
@@ -43,6 +44,15 @@ class StrapiAPI {
           message: error.response?.data?.error?.message || error.message,
           details: error.response?.data?.error?.details,
         };
+        
+        // Report error for monitoring
+        reportError(new Error(apiError.message), {
+          endpoint: error.config?.url,
+          method: error.config?.method,
+          status: apiError.status,
+          details: apiError.details,
+        });
+        
         return Promise.reject(apiError);
       }
     );
@@ -117,27 +127,35 @@ class StrapiAPI {
     return searchParams.toString();
   }
 
-  async get<T>(endpoint: string, params?: QueryParams): Promise<APIResponse<T>> {
-    const queryString = params ? this.buildQueryString(params) : '';
-    const url = queryString ? `${endpoint}?${queryString}` : endpoint;
-    
-    const response = await this.client.get<APIResponse<T>>(url);
-    return response.data;
+  async get<T>(endpoint: string, params?: QueryParams, retryConfig?: Partial<typeof DEFAULT_RETRY_CONFIG>): Promise<APIResponse<T>> {
+    return withRetry(async () => {
+      const queryString = params ? this.buildQueryString(params) : '';
+      const url = queryString ? `${endpoint}?${queryString}` : endpoint;
+      
+      const response = await this.client.get<APIResponse<T>>(url);
+      return response.data;
+    }, retryConfig);
   }
 
-  async post<T>(endpoint: string, data: any, config?: AxiosRequestConfig): Promise<APIResponse<T>> {
-    const response = await this.client.post<APIResponse<T>>(endpoint, data, config);
-    return response.data;
+  async post<T>(endpoint: string, data: any, config?: AxiosRequestConfig, retryConfig?: Partial<typeof DEFAULT_RETRY_CONFIG>): Promise<APIResponse<T>> {
+    return withRetry(async () => {
+      const response = await this.client.post<APIResponse<T>>(endpoint, data, config);
+      return response.data;
+    }, retryConfig);
   }
 
-  async put<T>(endpoint: string, data: any, config?: AxiosRequestConfig): Promise<APIResponse<T>> {
-    const response = await this.client.put<APIResponse<T>>(endpoint, data, config);
-    return response.data;
+  async put<T>(endpoint: string, data: any, config?: AxiosRequestConfig, retryConfig?: Partial<typeof DEFAULT_RETRY_CONFIG>): Promise<APIResponse<T>> {
+    return withRetry(async () => {
+      const response = await this.client.put<APIResponse<T>>(endpoint, data, config);
+      return response.data;
+    }, retryConfig);
   }
 
-  async delete<T>(endpoint: string, config?: AxiosRequestConfig): Promise<APIResponse<T>> {
-    const response = await this.client.delete<APIResponse<T>>(endpoint, config);
-    return response.data;
+  async delete<T>(endpoint: string, config?: AxiosRequestConfig, retryConfig?: Partial<typeof DEFAULT_RETRY_CONFIG>): Promise<APIResponse<T>> {
+    return withRetry(async () => {
+      const response = await this.client.delete<APIResponse<T>>(endpoint, config);
+      return response.data;
+    }, retryConfig);
   }
 
   // Helper method to get media URL

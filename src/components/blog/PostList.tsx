@@ -4,7 +4,9 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useBlogPosts } from '@/hooks/use-blog-posts';
 import { PostCard } from './PostCard';
-import LoadingSpinner from '@/components/common/LoadingSpinner';
+import { LoadingSpinner, ContentLoading } from '@/components/common/LoadingStates';
+import { ErrorFeedback } from '@/components/common/ErrorFeedback';
+import { OfflineFallback } from '@/components/common/OfflineNotification';
 import { CategoryFilter } from './CategoryFilter';
 import { SearchBar } from './SearchBar';
 import { Pagination } from './Pagination';
@@ -26,7 +28,7 @@ export function PostList({
   const [searchQuery, setSearchQuery] = useState(initialSearch || '');
   const pageSize = 9;
 
-  const { data, isLoading, error } = useBlogPosts({
+  const { data, isLoading, error, refetch } = useBlogPosts({
     page: currentPage,
     pageSize,
     category: selectedCategory || undefined,
@@ -69,23 +71,23 @@ export function PostList({
 
   if (error) {
     return (
-      <div className="text-center py-12">
-        <div className="text-red-500 mb-4">
-          <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <h3 className="text-xl font-semibold mb-2">Failed to load posts</h3>
-          <p className="text-gray-600 dark:text-gray-400">
-            {error.message || 'Something went wrong while loading the blog posts.'}
-          </p>
-        </div>
-        <button
-          onClick={() => window.location.reload()}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          Try Again
-        </button>
-      </div>
+      <OfflineFallback fallback={
+        <ErrorFeedback
+          error={error}
+          onRetry={() => refetch()}
+          context="博客文章列表"
+          variant="card"
+          className="my-8"
+        />
+      }>
+        <ErrorFeedback
+          error={error}
+          onRetry={() => refetch()}
+          context="博客文章列表"
+          variant="card"
+          className="my-8"
+        />
+      </OfflineFallback>
     );
   }
 
@@ -160,9 +162,10 @@ export function PostList({
       {/* Posts Section */}
       <div id="posts-section">
         {isLoading ? (
-          <div className="flex justify-center py-12">
-            <LoadingSpinner size="lg" />
-          </div>
+          <ContentLoading 
+            title="正在加载博客文章..."
+            description="请稍候，正在获取最新的文章内容"
+          />
         ) : posts.length === 0 ? (
           <motion.div
             initial={{ opacity: 0 }}
