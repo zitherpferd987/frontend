@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
   
   // Enhanced image optimization
   images: {
+      formats: ['image/webp', 'image/avif'],
     domains: ['localhost'],
     remotePatterns: [
       {
